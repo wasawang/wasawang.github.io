@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>miniSGLang Learning · Wasa's Playground</title>
+  <meta name="description" content="A short intro to miniSGLang — a minimalist replica of SGLang for learning the internals of structured LLM generation." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --bg-soft: #11141b;
+      --surface: rgba(255, 255, 255, 0.04);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e6e8ee;
+      --text-dim: #a4abba;
+      --muted: #6f7689;
+      --accent: #7c5cff;
+      --accent-2: #2dd4bf;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .bg-glow {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(60% 50% at 80% 0%, rgba(124, 92, 255, 0.18), transparent 60%),
+        radial-gradient(50% 40% at 0% 10%, rgba(45, 212, 191, 0.12), transparent 60%);
+    }
+    .grid {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.4;
+      mask-image: linear-gradient(180deg, black 0%, transparent 80%);
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      background: rgba(11, 13, 18, 0.7);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; max-width: 1000px; margin: 0 auto;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; color: var(--text);
+    }
+    .brand .logo {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid; place-items: center; color: #0b0d12;
+      font-weight: 800; font-family: 'JetBrains Mono', monospace;
+    }
+    .nav-links { display: flex; gap: 24px; font-size: 14px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .wrap { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+    .page-head { padding: 80px 0 32px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border: 1px solid var(--border);
+      border-radius: 999px; background: var(--surface);
+      font-size: 12px; color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .badge .dot {
+      width: 6px; height: 6px; border-radius: 999px;
+      background: var(--accent-2);
+      box-shadow: 0 0 12px var(--accent-2);
+    }
+    h1.title {
+      font-size: clamp(36px, 5vw, 56px);
+      line-height: 1.05; letter-spacing: -0.03em;
+      font-weight: 800; margin: 18px 0 14px;
+    }
+    h1.title .grad {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .subtitle {
+      font-size: 17px; color: var(--text-dim);
+      max-width: 640px; margin: 0;
+    }
+
+    .content { padding: 24px 0 64px; }
+    .card {
+      padding: 24px;
+      border-radius: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      margin: 18px 0;
+    }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 20px; letter-spacing: -0.01em;
+    }
+    .card p { margin: 0 0 12px; color: var(--text-dim); }
+    .card p:last-child { margin-bottom: 0; }
+    .card ul { margin: 0; padding-left: 20px; color: var(--text-dim); }
+    .card li { margin: 6px 0; }
+
+    .kicker {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--accent);
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 16px;
+      font-size: 14px; color: var(--text-dim);
+    }
+    .back-link:hover { color: var(--text); text-decoration: none; }
+
+    footer {
+      margin-top: 48px;
+      border-top: 1px solid var(--border);
+      padding: 24px 0 32px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .footer-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .footer-links { display: flex; gap: 18px; }
+    .footer-links a { color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <div class="grid"></div>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="../index.html" class="brand">
+        <span class="logo">W</span>
+        <span>Wasa<span style="color:var(--text-dim)">.dev</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="./index.html">miniSGLang</a>
+        <a href="https://github.com/sgl-project/mini-sglang" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="wrap page-head">
+    <span class="badge"><span class="dot"></span> intro page · placeholder</span>
+    <h1 class="title">
+      <span class="grad">miniSGLang</span> Learning
+    </h1>
+    <p class="subtitle">
+      A minimalist replica of SGLang, packaged in a single Python file — meant for reading end-to-end to learn how structured LLM generation works under the hood.
+    </p>
+    <a href="../index.html" class="back-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      Back to home
+    </a>
+  </header>
+
+  <main class="wrap content">
+    <div class="card">
+      <div class="kicker">// what it is</div>
+      <h2 style="margin-top: 8px;">The project</h2>
+      <p>
+        <a href="https://github.com/sgl-project/mini-sglang" target="_blank" rel="noopener">mini-sglang</a> is the sgl-project team's stripped-down, single-file take on SGLang. It's designed to be read rather than shipped: one Python file you can open, scroll through, and understand.
+      </p>
+      <p>
+        It bundles model downloading, a friendly chat interface, and the pieces needed for RL training — all kept minimal so the moving parts of an inference engine stay visible.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="kicker">// notes</div>
+      <h2 style="margin-top: 8px;">Status</h2>
+      <p>
+        This is an intro / placeholder page. Setup walkthrough, code walkthrough, and notes will land here as I work through the repo.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="kicker">// links</div>
+      <h2 style="margin-top: 8px;">Useful</h2>
+      <ul>
+        <li><a href="https://github.com/sgl-project/mini-sglang" target="_blank" rel="noopener">Upstream repo</a></li>
+        <li><a href="https://docs.sglang.ai/" target="_blank" rel="noopener">SGLang docs</a></li>
+      </ul>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <div>© <span id="year"></span> wasawang · learning notes</div>
+      <div class="footer-links">
+        <a href="../index.html">Home</a>
+        <a href="https://github.com/sgl-project/mini-sglang" target="_blank" rel="noopener">Upstream ↗</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

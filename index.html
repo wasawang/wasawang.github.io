@@ -1,1 +1,589 @@
-"Hello from Wasa" 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wasa's Playground — Notes on LLMs, Agents, and Code</title>
+  <meta name="description" content="A personal learning playground exploring LLMs, agents, and SGLang — notes, experiments, and write-ups by wasawang." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --bg-soft: #11141b;
+      --surface: rgba(255, 255, 255, 0.04);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e6e8ee;
+      --text-dim: #a4abba;
+      --muted: #6f7689;
+      --accent: #7c5cff;
+      --accent-2: #2dd4bf;
+      --accent-3: #f472b6;
+      --shadow: 0 20px 60px -20px rgba(124, 92, 255, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .bg-glow {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(60% 50% at 80% 0%, rgba(124, 92, 255, 0.18), transparent 60%),
+        radial-gradient(50% 40% at 0% 10%, rgba(45, 212, 191, 0.12), transparent 60%),
+        radial-gradient(40% 40% at 50% 100%, rgba(244, 114, 182, 0.08), transparent 60%);
+    }
+
+    .grid {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.4;
+      mask-image: linear-gradient(180deg, black 0%, transparent 80%);
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    /* Nav */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      background: rgba(11, 13, 18, 0.7);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .brand .logo {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid; place-items: center;
+      color: #0b0d12;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      box-shadow: var(--shadow);
+    }
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+    .nav-links a {
+      transition: color 0.2s ease;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* Hero */
+    .hero {
+      padding: 96px 0 64px;
+      position: relative;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .badge .dot {
+      width: 6px; height: 6px; border-radius: 999px;
+      background: var(--accent-2);
+      box-shadow: 0 0 12px var(--accent-2);
+    }
+    h1.headline {
+      font-size: clamp(40px, 6vw, 68px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+      margin: 18px 0 18px;
+      max-width: 900px;
+    }
+    h1.headline .grad {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent-3) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    p.lede {
+      font-size: 18px;
+      color: var(--text-dim);
+      max-width: 680px;
+      margin: 0 0 32px;
+    }
+    .cta-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      border: 1px solid transparent;
+      transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #5b3df0);
+      color: white;
+      box-shadow: var(--shadow);
+    }
+    .btn-ghost {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover { border-color: rgba(255,255,255,0.2); }
+
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 56px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+    .stat .num {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .stat .label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Sections */
+    section { padding: 56px 0; }
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+    .section-head h2 {
+      font-size: 28px;
+      letter-spacing: -0.02em;
+      margin: 0 0 4px;
+    }
+    .section-head p {
+      color: var(--text-dim);
+      margin: 0;
+      font-size: 15px;
+    }
+    .section-head .kicker {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* Cards */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      position: relative;
+      padding: 22px;
+      border-radius: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      overflow: hidden;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent, rgba(124,92,255,0.06));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(124, 92, 255, 0.35);
+    }
+    .card:hover::before { opacity: 1; }
+    .card .icon {
+      width: 40px; height: 40px;
+      display: grid; place-items: center;
+      border-radius: 10px;
+      background: rgba(124, 92, 255, 0.12);
+      color: var(--accent);
+      font-size: 20px;
+      margin-bottom: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+    }
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+    }
+    .card p {
+      margin: 0 0 16px;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+    .card .meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .card .arrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .card .arrow svg { transition: transform 0.2s ease; }
+    .card:hover .arrow svg { transform: translateX(3px); }
+
+    /* Featured accent variants */
+    .card.t-accent-2 .icon { background: rgba(45, 212, 191, 0.12); color: var(--accent-2); }
+    .card.t-accent-2 .arrow { color: var(--accent-2); }
+    .card.t-accent-3 .icon { background: rgba(244, 114, 182, 0.12); color: var(--accent-3); }
+    .card.t-accent-3 .arrow { color: var(--accent-3); }
+
+    /* Newsletter / CTA strip */
+    .cta-strip {
+      margin-top: 32px;
+      padding: 28px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(124,92,255,0.1), rgba(45,212,191,0.06));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .cta-strip h3 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+    .cta-strip p { margin: 0; color: var(--text-dim); font-size: 14px; }
+
+    /* Footer */
+    footer {
+      margin-top: 80px;
+      border-top: 1px solid var(--border);
+      padding: 28px 0 40px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .footer-links { display: flex; gap: 18px; }
+    .footer-links a:hover { color: var(--text); }
+
+    /* Responsive */
+    @media (max-width: 720px) {
+      .nav-links { display: none; }
+      .hero { padding: 64px 0 32px; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .section-head { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* Reveal */
+    .reveal { opacity: 0; transform: translateY(8px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.in { opacity: 1; transform: none; }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <div class="grid"></div>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="./index.html" class="brand">
+        <span class="logo">W</span>
+        <span>Wasa<span style="color:var(--text-dim)">.dev</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="#explore">Explore</a>
+        <a href="#topics">Topics</a>
+        <a href="#about">About</a>
+        <a href="https://github.com/sgl-project/mini-sglang" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero wrap">
+    <span class="badge"><span class="dot"></span> Learning notes · always in progress</span>
+    <h1 class="headline">
+      Notes, code, and experiments from the
+      <span class="grad">LLM &amp; agent frontier</span>.
+    </h1>
+    <p class="lede">
+      Hi, I'm Wasa. This is my personal playground for thinking out loud about large language models, autonomous agents, and the infrastructure that powers them. Everything here is a work in progress — and that's the point.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#explore">
+        Start exploring
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+      <a class="btn btn-ghost" href="./miniSGLangLearning/index.html">miniSGLang setup →</a>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="num">3</div>
+        <div class="label">Book chapters reviewed</div>
+      </div>
+      <div class="stat">
+        <div class="num">2</div>
+        <div class="label">Agent chapters drafted</div>
+      </div>
+      <div class="stat">
+        <div class="num">∞</div>
+        <div class="label">Things still to learn</div>
+      </div>
+    </div>
+  </header>
+
+  <section id="explore" class="wrap">
+    <div class="section-head reveal">
+      <div>
+        <div class="kicker">// explore</div>
+        <h2>Pick a thread</h2>
+        <p>Jump into the current series. Newest write-ups at the top.</p>
+      </div>
+    </div>
+
+    <div class="cards">
+      <a class="card t-accent-3 reveal" href="./miniSGLangLearning/index.html">
+        <div class="icon">🧪</div>
+        <h3>miniSGLang Learning</h3>
+        <p>A minimalist replica of SGLang in a single Python file — a clean way to learn the internals of structured LLM generation.</p>
+        <div class="meta">
+          <span class="tag">new</span>
+          <span class="tag">sglang</span>
+          <span class="tag">from-scratch</span>
+        </div>
+        <span class="arrow">
+          Open the intro
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </a>
+
+      <a class="card reveal" href="./Agent/AgentChapter1.md">
+        <div class="icon">🤖</div>
+        <h3>Agent · Chapter 1</h3>
+        <p>First notes on building autonomous agents — what they are, why they matter, and the smallest viable loop.</p>
+        <div class="meta">
+          <span class="tag">agents</span>
+          <span class="tag">chapter-1</span>
+        </div>
+        <span class="arrow">
+          Read chapter 1
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </a>
+
+      <a class="card reveal" href="./Agent/AgentChapter2.md">
+        <div class="icon">🧭</div>
+        <h3>Agent · Chapter 2</h3>
+        <p>Deeper into planning, memory, and tool use — the moving parts of an agent that actually gets things done.</p>
+        <div class="meta">
+          <span class="tag">agents</span>
+          <span class="tag">chapter-2</span>
+        </div>
+        <span class="arrow">
+          Read chapter 2
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </a>
+
+      <a class="card t-accent-2 reveal" href="./LLM/bookreview_ch3.md">
+        <div class="icon">📘</div>
+        <h3>LLM Book Review · Ch. 3</h3>
+        <p>The newest entry in the ongoing book review series — current chapter notes and reactions.</p>
+        <div class="meta">
+          <span class="tag">llm</span>
+          <span class="tag">review</span>
+          <span class="tag">latest</span>
+        </div>
+        <span class="arrow">
+          Read chapter 3
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </a>
+
+      <a class="card reveal" href="./LLM/bookreview_ch1.md">
+        <div class="icon">📖</div>
+        <h3>LLM Book Review · Ch. 1</h3>
+        <p>Where it all started — first impressions and the questions the opening chapters raised.</p>
+        <div class="meta">
+          <span class="tag">llm</span>
+          <span class="tag">review</span>
+        </div>
+        <span class="arrow">
+          Read chapter 1
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </a>
+
+      <a class="card t-accent-3 reveal" href="#">
+        <div class="icon">🌱</div>
+        <h3>More coming soon</h3>
+        <p>Code walkthroughs, paper summaries, and small experiments — planted as seeds, watered over time.</p>
+        <div class="meta">
+          <span class="tag">tbd</span>
+        </div>
+        <span class="arrow">
+          Stay tuned
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </a>
+    </div>
+
+    <div class="cta-strip reveal" style="margin-top: 28px;">
+      <div>
+        <h3>Curious about the whole stack?</h3>
+        <p>From agent loops to inference engines — see what I'm poking at next.</p>
+      </div>
+      <a class="btn btn-primary" href="#topics">See topics ↓</a>
+    </div>
+  </section>
+
+  <section id="topics" class="wrap">
+    <div class="section-head reveal">
+      <div>
+        <div class="kicker">// topics</div>
+        <h2>What's here</h2>
+        <p>The threads that show up most across these notes.</p>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card reveal">
+        <div class="icon">▣</div>
+        <h3>LLM systems</h3>
+        <p>How models are served, scheduled, and shaped into something useful at scale.</p>
+      </div>
+      <div class="card reveal t-accent-2">
+        <div class="icon">◐</div>
+        <h3>Agents</h3>
+        <p>Planning, memory, tools, and the long arc of giving models real autonomy.</p>
+      </div>
+      <div class="card reveal t-accent-3">
+        <div class="icon">∞</div>
+        <h3>Learning in public</h3>
+        <p>Half-finished ideas, paper notes, and the occasional small build — written down so I don't forget.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="wrap" style="padding-bottom: 24px;">
+    <div class="section-head reveal">
+      <div>
+        <div class="kicker">// about</div>
+        <h2>About this site</h2>
+        <p>A tiny corner of the internet for thinking out loud about what's interesting right now.</p>
+      </div>
+    </div>
+    <div class="card reveal" style="max-width: 760px;">
+      <p style="margin: 0; color: var(--text-dim);">
+        This site is a personal notebook — not a finished product, not a polished publication. Each page is something I'm currently chewing on: a chapter read, a system poked at, a repo walked through line by line. If you find something useful, take it. If you find something wrong, tell me.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <div>© <span id="year"></span> wasawang · built with curiosity</div>
+      <div class="footer-links">
+        <a href="./index.html">Home</a>
+        <a href="./miniSGLangLearning/index.html">miniSGLang</a>
+        <a href="https://github.com/sgl-project/mini-sglang" target="_blank" rel="noopener">Upstream ↗</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // reveal on scroll
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+  </script>
+</body>
+</html>
